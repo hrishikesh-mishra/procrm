@@ -1,0 +1,13 @@
+themes/default/js/style.js custom/include/procrm/OrderState.php custom/modules/alan_OrderMaster/tpl custom/modules/alan_OrderMaster/tpl/orderstatus.tpl custom/modules/alan_OrderMaster/Ext/Vardefs/vardefs.ext.php custom/modules/alan_OrderMaster/metadata/detailviewdefs.php custom/modules/alan_OrderMaster/controller.php custom/modules/alan_OrderMaster/views custom/modules/alan_OrderMaster/views/view.detail.php custom/modules/alan_OrderAddress/metadata/subpanels/ForOrderMaster.php custom/Extension/modules/alan_OrderMaster/Ext/Vardefs/filed_customization.-This line, and those below, will be ignored--
+
+M    themes/default/js/style.js
+M    custom/include/procrm/OrderState.php
+A    custom/modules/alan_OrderMaster/tpl
+AM   custom/modules/alan_OrderMaster/tpl/orderstatus.tpl
+M    custom/modules/alan_OrderMaster/Ext/Vardefs/vardefs.ext.php
+M    custom/modules/alan_OrderMaster/metadata/detailviewdefs.php
+AM   custom/modules/alan_OrderMaster/controller.php
+A    custom/modules/alan_OrderMaster/views
+AM   custom/modules/alan_OrderMaster/views/view.detail.php
+M    custom/modules/alan_OrderAddress/metadata/subpanels/ForOrderMaster.php
+M    custom/Extension/modules/alan_OrderMaster/Ext/Vardefs/filed_customization.php

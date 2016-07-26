@@ -1,0 +1,315 @@
+10
+
+dir
+4
+file:///home/svn-local/procrm/modules
+file:///home/svn-local/procrm
+
+
+
+2013-01-26T18:15:10.500687Z
+2
+alan
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0d533836-c3eb-4288-899a-83e843c157b0
+
+SchedulersJobs
+dir
+
+Relationships
+dir
+
+EmailAddresses
+dir
+
+Tasks
+dir
+
+Leads
+dir
+
+EmailMarketing
+dir
+
+EmailText
+dir
+
+ModuleBuilder
+dir
+
+UserPreferences
+dir
+
+Documents
+dir
+
+History
+dir
+
+Configurator
+dir
+
+Campaigns
+dir
+
+TableDictionary.php
+file
+
+
+
+
+2013-02-10T04:16:28.000000Z
+ef9c0976beae149cd4433a39fd01ef94
+2013-01-26T03:36:29.093716Z
+1
+alan
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4894
+
+Activities
+dir
+
+UpgradeWizard
+dir
+
+Import
+dir
+
+Emails
+dir
+
+OAuthKeys
+dir
+
+CampaignTrackers
+dir
+
+Accounts
+dir
+
+CampaignLog
+dir
+
+EmailMan
+dir
+
+Charts
+dir
+
+LabelEditor
+dir
+
+SavedSearch
+dir
+
+ProjectTask
+dir
+
+Cases
+dir
+
+Schedulers
+dir
+
+Users
+dir
+
+ACLRoles
+dir
+
+Meetings
+dir
+
+alan_OrderAddress
+dir
+
+Groups
+dir
+
+DocumentRevisions
+dir
+
+ACLActions
+dir
+
+MergeRecords
+dir
+
+alan_OrderMaster
+dir
+
+EAPM
+dir
+
+Prospects
+dir
+
+Opportunities
+dir
+
+Roles
+dir
+
+alan_OrderItem
+dir
+
+Administration
+dir
+
+Help
+dir
+
+Notes
+dir
+
+iCals
+dir
+
+OptimisticLock
+dir
+
+Calls
+dir
+
+alan_logs
+dir
+
+alan_communicationlog
+dir
+
+Employees
+dir
+
+Currencies
+dir
+
+MailMerge
+dir
+
+OAuthTokens
+dir
+
+SugarFeed
+dir
+
+MySettings
+dir
+
+Studio
+dir
+
+vCals
+dir
+
+Calendar
+dir
+
+DynamicFields
+dir
+
+Connectors
+dir
+
+BeanDictionary.php
+file
+
+
+
+
+2013-02-10T04:16:28.000000Z
+233575feabf6c1890205aaeef299c689
+2013-01-26T03:36:29.093716Z
+1
+alan
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2101
+
+Home
+dir
+
+ACL
+dir
+
+Bugs
+dir
+
+Releases
+dir
+
+Project
+dir
+
+InboundEmail
+dir
+
+Audit
+dir
+
+EmailTemplates
+dir
+
+Versions
+dir
+
+Trackers
+dir
+
+ProspectLists
+dir
+
+Contacts
+dir
+

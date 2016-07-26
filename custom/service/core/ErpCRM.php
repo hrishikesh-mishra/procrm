@@ -1,0 +1,520 @@
+<?php
+
+if (!defined('sugarEntry'))
+    define('sugarEntry', true);
+
+/**
+ *  Webservice for ERP - CRM
+ * 
+ * @author Hrishikesh Mishra <sprt.email@gmail.com>
+ * 
+ */
+
+require_once 'service/v4/SugarWebServiceImplv4.php';
+require_once 'service/v4_1/SugarWebServiceUtilv4_1.php';
+require_once 'custom/include/procrm/OrderState.php';
+
+class ErpCrmWebserviceSoap extends SugarWebServiceImplv4 {
+    /**
+     * Error constant
+     */
+
+    const ERROR_EMPTY_SALES_HEADER = 'empty_sales_header';
+    const ERROR_EMPTY_CUSTOMER_INFO = 'empty_customer_info';
+    const ERROR_EMPTY_ORDER_NO = 'empty_order_no';
+    const ERROR_DUPLICATE_ORDER = 'duplicate_order';
+    const ERROR_EMPTY_SHIP_TO_NAME = 'empty_ship_to_name';
+    const ERROR_EMPTY_CUSTOMER_TYPE = 'empty_customer_type';
+    const ERROR_EMPTY_WEB_CUSTOMER_NO = 'empty_web_customer_no';
+    const ERROR_EMPTY_CUSTOMER_FIRSTNAME = 'empty_customer_firstname';
+    const ERROR_EMPTY_CUSTOMER_EMAIL = 'empty_customer_email';
+    const ERROR_EMPTY_SALES_LINE = 'empty_sales_line';
+    const ERROR_EMPTY_LINE_NO = 'empty_line_no';
+    const ERROR_EMPTY_ITEM_CODE = 'empty_item_code';
+    const ERROR_INVALID_SESSION = 'invalid_session';
+    const WEBSERVICE_SUCESS = 'webservice_sucess';
+    const ERROR_EMPTY_ORDER_STATUS= 'empty_order_status';
+    const ERROR_ORDER_NOT_CHANGABLE= 'order_status_not_changable';
+    const ORDER_NO_NOT_EXISTS= 'order_no_not_exists';
+    const ERROR_INVALID_ORDER_STATUS= 'error_invalid_order_status';
+    
+    /**
+     * <p>Create new sales order </p>
+     * @param Array $userAuth
+     * @param Array $salesOrder
+     * @return SoapError
+     * 
+     * @access public
+     * 
+     */
+    public static function CreateSalesOrder($userAuth, $salesOrder) {
+
+        $error = new SoapError();
+
+        //authenticate the users using login web service
+        $Authentication = array(
+            'user_name' => $userAuth['user_name'],
+            'password' => md5($userAuth['password'])
+        );
+
+        $webservicesAuth = self::login($Authentication, 'ERP');
+
+        $session_id = $webservicesAuth['id'];
+
+        $orderNo = isset($salesOrder['SalesHeader']['SalesOrderNo']) ?
+                $salesOrder['SalesHeader']['SalesOrderNo'] : ''
+        ;
+
+        //User authentication check 
+        if (!self::validate_authenticated($session_id)) {
+            $issue = "User Not Authenticated for Web service call for sales order import.";
+            alan_logs::log(__FILE__, __METHOD__, __LINE__, $issue, "high", serialize($userAuth));
+            alan_communicationlog::log(print_r($salesOrder, true), "invalid_session", "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::ERP_CRM_NEW_SALE_ORDER, json_decode($salesOrder));
+            $error->set_error(self::ERROR_INVALID_SESSION);
+            return $error->get_soap_array();
+        }
+
+        //Extracting the session detail
+        $userId = self::get_user_id($session_id);
+
+        //Basic validation 
+        $validationStatus = self::__validateNewSalesOrder($salesOrder);
+        if ($validationStatus !== true) {
+            alan_communicationlog::log(print_r($salesOrder, true), $validationStatus, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::ERP_CRM_NEW_SALE_ORDER, json_decode($salesOrder));
+            $error->set_error($validationStatus);
+            return $error->get_soap_array();
+        }
+
+        $webCustomerNo = $salesOrder['Customer']['WebCustomerNo'];
+
+
+
+        //Creating customer (ie. Account ) Object 
+        $crmCustomerId = self::checkCustomerExistByWebCustomerNo($webCustomerNo);
+
+        //Saving customer information 
+        $resultCustomerSet = self::set_entry($session_id, 'Accounts', array(
+                    array('name' => 'name', 'value' => isset($salesOrder['Customer']['FirstName']) ? $salesOrder['Customer']['FirstName'] : ''),
+                    array('name' => 'lastname', 'value' => isset($salesOrder['Customer']['LastName']) ? $salesOrder['Customer']['LastName'] : ''),
+                    array('name' => 'customertype', 'value' => isset($salesOrder['Customer']['CustomerType']) ? $salesOrder['Customer']['CustomerType'] : ''),
+                    array('name' => 'webcustomerno', 'value' => isset($salesOrder['Customer']['WebCustomerNo']) ? $salesOrder['Customer']['WebCustomerNo'] : ''),
+                    array('name' => 'address', 'value' => isset($salesOrder['Customer']['Address']) ? $salesOrder['Customer']['Address'] : ''),
+                    array('name' => 'address2', 'value' => isset($salesOrder['Customer']['Address2']) ? $salesOrder['Customer']['Address2'] : ''),
+                    array('name' => 'address3', 'value' => isset($salesOrder['Customer']['Address3']) ? $salesOrder['Customer']['Address3'] : ''),
+                    array('name' => 'address4', 'value' => isset($salesOrder['Customer']['Address4']) ? $salesOrder['Customer']['Address4'] : ''),
+                    array('name' => 'postcode', 'value' => isset($salesOrder['Customer']['PostCode']) ? $salesOrder['Customer']['PostCode'] : ''),
+                    array('name' => 'city', 'value' => isset($salesOrder['Customer']['City']) ? $salesOrder['Customer']['City'] : ''),
+                    array('name' => 'state', 'value' => isset($salesOrder['Customer']['State']) ? $salesOrder['Customer']['State'] : ''),
+                    array('name' => 'country', 'value' => isset($salesOrder['Customer']['Country']) ? $salesOrder['Customer']['Country'] : ''),
+                    array('name' => 'phoneno', 'value' => isset($salesOrder['Customer']['PhoneNo']) ? $salesOrder['Customer']['PhoneNo'] : ''),
+                    array('name' => 'mobileno', 'value' => isset($salesOrder['Customer']['MobileNo']) ? $salesOrder['Customer']['PhoneNo'] : ''),
+                    array('name' => 'email1', 'value' => isset($salesOrder['Customer']['EMail']) ? $salesOrder['Customer']['EMail'] : ''),
+                    array('name' => 'stylist', 'value' => isset($salesOrder['Customer']['Stylist']) ? $salesOrder['Customer']['Stylist'] : ''),
+                    array('name' => 'created_by', 'value' => $userId),
+                    array('name' => 'modified_user_id', 'value' => $userId),
+                    array('name' => 'assigned_user_id', 'value' => $userId),
+                    array('name' => 'id', 'value' => $crmCustomerId),
+                        )
+        );
+
+
+        //Saving Order master detail
+        $resultOrderMasterSet = self::set_entry($session_id, 'alan_OrderMaster', array(
+                    array('name' => 'name', 'value' => isset($salesOrder['SalesHeader']['SalesOrderNo']) ? $salesOrder['SalesHeader']['SalesOrderNo'] : ''),
+                    array('name' => 'paymentmethod', 'value' => isset($salesOrder['SalesHeader']['PaymentMethod']) ? $salesOrder['SalesHeader']['PaymentMethod'] : ''),
+                    array('name' => 'pg_flag', 'value' => isset($salesOrder['SalesHeader']['PG_FLAG']) ? $salesOrder['SalesHeader']['PG_FLAG'] : ''),
+                    array('name' => 'mobileverified', 'value' => isset($salesOrder['SalesHeader']['MobileVerified']) ? $salesOrder['SalesHeader']['MobileVerified'] : false),
+                    array('name' => 'orderdate', 'value' => isset($salesOrder['SalesHeader']['OrderDate']) ? $salesOrder['SalesHeader']['OrderDate'] . " " . $salesOrder['SalesHeader']['OrderTime'] : ''),
+                    array('name' => 'ordervalue', 'value' => isset($salesOrder['SalesHeader']['OrderValue']) ? $salesOrder['SalesHeader']['OrderValue'] : ''),
+                    array('name' => 'paymentdate', 'value' => isset($salesOrder['SalesHeader']['PaymentDate']) ? $salesOrder['SalesHeader']['PaymentDate'] . " " . $salesOrder['SalesHeader']['PaymentTime'] : ''),
+                    array('name' => 'paymentstatus', 'value' => isset($salesOrder['SalesHeader']['PaymentStatus']) ? $salesOrder['SalesHeader']['PaymentStatus'] : ''),
+                    array('name' => 'authcode', 'value' => isset($salesOrder['SalesHeader']['AuthCode']) ? $salesOrder['SalesHeader']['AuthCode'] : ''),
+                    array('name' => 'paymentline_amount', 'value' => isset($salesOrder['PaymentLine']['Amount']) ? $salesOrder['PaymentLine']['Amount'] : ''),
+                    array('name' => 'paymentline_paymentgateway', 'value' => isset($salesOrder['PaymentLine']['PaymentGateWay']) ? $salesOrder['PaymentLine']['PaymentGateWay'] : ''),
+                    array('name' => 'paymentline_paymentrefno', 'value' => isset($salesOrder['PaymentLine']['PaymentRefNo']) ? $salesOrder['PaymentLine']['PaymentRefNo'] : ''),
+                    array('name' => 'webcustomerno', 'value' => $webCustomerNo),
+                    array('name' => 'salespersoncode', 'value' => isset($salesOrder['SalesHeader']['SalespersonCode']) ? $salesOrder['SalesHeader']['SalespersonCode'] : ''),
+                    //Currently not in use
+                    //array('name' => 'orderid', 'value' => isset($salesOrder['SalesHeader']['FirstName']) ? $salesOrder['SalesHeader']['FirstName'] : ''),
+                    array('name' => 'orderstatus', 'value' => isset($salesOrder['SalesHeader']['OrderStatus']) ? $salesOrder['SalesHeader']['OrderStatus'] : ''),
+                    array('name' => 'created_by', 'value' => $userId),
+                    array('name' => 'assigned_user_id', 'value' => $userId),
+                        )
+        );
+
+
+        //Account (customer) and order master relationship 
+        $relAccountOrderMasterResponseSet = self::set_relationship($session_id, 'Accounts', $resultCustomerSet['id'], 'accounts_alan_ordermaster_1', array($resultOrderMasterSet['id']));
+
+
+        //Shipping Address 
+        $resultOrderShipAddressSet = self::set_entry($session_id, 'alan_OrderAddress', array(
+                    array('name' => 'address_type', 'value' => 'shipping'),
+                    array('name' => 'name', 'value' => isset($salesOrder['SalesHeader']['ShipToName']) ? $salesOrder['SalesHeader']['ShipToName'] : ''),
+                    array('name' => 'name2', 'value' => isset($salesOrder['SalesHeader']['ShipToName2']) ? $salesOrder['SalesHeader']['ShipToName2'] : ''),
+                    array('name' => 'address', 'value' => isset($salesOrder['SalesHeader']['ShipToAddress']) ? $salesOrder['SalesHeader']['ShipToAddress'] : ''),
+                    array('name' => 'address2', 'value' => isset($salesOrder['SalesHeader']['ShipToAddress2']) ? $salesOrder['SalesHeader']['ShipToAddress2'] : ''),
+                    array('name' => 'address3', 'value' => isset($salesOrder['SalesHeader']['ShipToAddress3']) ? $salesOrder['SalesHeader']['ShipToAddress3'] : ''),
+                    array('name' => 'address4', 'value' => isset($salesOrder['SalesHeader']['ShipToAddress4']) ? $salesOrder['SalesHeader']['ShipToAddress4'] : ''),
+                    array('name' => 'postcode', 'value' => isset($salesOrder['SalesHeader']['ShipToPostCode']) ? $salesOrder['SalesHeader']['ShipToPostCode'] : ''),
+                    array('name' => 'city', 'value' => isset($salesOrder['SalesHeader']['ShipToCity']) ? $salesOrder['SalesHeader']['ShipToCity'] : ''),
+                    array('name' => 'state', 'value' => isset($salesOrder['SalesHeader']['ShipToState']) ? $salesOrder['SalesHeader']['ShipToState'] : ''),
+                    array('name' => 'country', 'value' => isset($salesOrder['SalesHeader']['ShipToCountry']) ? $salesOrder['SalesHeader']['ShipToCountry'] : ''),
+                    array('name' => 'phoneno', 'value' => isset($salesOrder['SalesHeader']['ShipToPhoneNo']) ? $salesOrder['SalesHeader']['ShipToPhoneNo'] : ''),
+                    array('name' => 'mobileno', 'value' => isset($salesOrder['SalesHeader']['ShipToMobileNo']) ? $salesOrder['SalesHeader']['ShipToMobileNo'] : ''),
+                    array('name' => 'email', 'value' => isset($salesOrder['SalesHeader']['ShipToEMail']) ? $salesOrder['SalesHeader']['ShipToEMail'] : ''),
+                    array('name' => 'orderno', 'value' => $orderNo),
+                    array('name' => 'webcustomerno', 'value' => $webCustomerNo),
+                    //Currently not in use
+                    //array('name' => 'orderid', 'value' => ),
+                    array('name' => 'created_by', 'value' => $userId),
+                    array('name' => 'assigned_user_id', 'value' => $userId),
+                        )
+        );
+
+        //Billing Address 
+        $resultOrderBillAddressSet = self::set_entry($session_id, 'alan_OrderAddress', array(
+                    array('name' => 'address_type', 'value' => 'billing'),
+                    array('name' => 'name', 'value' => isset($salesOrder['SalesHeader']['BillToName']) ? $salesOrder['SalesHeader']['BillToName'] : ''),
+                    array('name' => 'name2', 'value' => isset($salesOrder['SalesHeader']['BillToName2']) ? $salesOrder['SalesHeader']['BillToName2'] : ''),
+                    array('name' => 'address', 'value' => isset($salesOrder['SalesHeader']['BillToAddress']) ? $salesOrder['SalesHeader']['BillToAddress'] : ''),
+                    array('name' => 'address2', 'value' => isset($salesOrder['SalesHeader']['BillToAddress2']) ? $salesOrder['SalesHeader']['BillToAddress2'] : ''),
+                    array('name' => 'address3', 'value' => isset($salesOrder['SalesHeader']['BillToAddress3']) ? $salesOrder['SalesHeader']['BillToAddress3'] : ''),
+                    array('name' => 'address4', 'value' => isset($salesOrder['SalesHeader']['BillToAddress4']) ? $salesOrder['SalesHeader']['BillToAddress4'] : ''),
+                    array('name' => 'postcode', 'value' => isset($salesOrder['SalesHeader']['BillToPostCode']) ? $salesOrder['SalesHeader']['BillToPostCode'] : ''),
+                    array('name' => 'city', 'value' => isset($salesOrder['SalesHeader']['BillToCity']) ? $salesOrder['SalesHeader']['BillToCity'] : ''),
+                    array('name' => 'state', 'value' => isset($salesOrder['SalesHeader']['BillToState']) ? $salesOrder['SalesHeader']['BillToState'] : ''),
+                    array('name' => 'country', 'value' => isset($salesOrder['SalesHeader']['BillToCountry']) ? $salesOrder['SalesHeader']['BillToCountry'] : ''),
+                    array('name' => 'phoneno', 'value' => isset($salesOrder['SalesHeader']['BillToPhoneNo']) ? $salesOrder['SalesHeader']['BillToPhoneNo'] : ''),
+                    array('name' => 'mobileno', 'value' => isset($salesOrder['SalesHeader']['BillToMobileNo']) ? $salesOrder['SalesHeader']['BillToMobileNo'] : ''),
+                    array('name' => 'email', 'value' => isset($salesOrder['SalesHeader']['BillToEMail']) ? $salesOrder['SalesHeader']['BillToEMail'] : ''),
+                    array('name' => 'orderno', 'value' => $orderNo),
+                    array('name' => 'webcustomerno', 'value' => $webCustomerNo),
+                    //Currently not in use
+                    //array('name' => 'orderid', 'value' => ),
+                    array('name' => 'created_by', 'value' => $userId),
+                    array('name' => 'assigned_user_id', 'value' => $userId),
+                        )
+        );
+
+        //Order master and shipping and billing address relationshipp
+        $orderShippingAddressRel = self::set_relationship($session_id, 'alan_OrderMaster', $resultOrderMasterSet['id'], 'alan_ordermaster_alan_orderaddress', array($resultOrderShipAddressSet['id']));
+        $orderBillingAddressRel = self::set_relationship($session_id, 'alan_OrderMaster', $resultOrderMasterSet['id'], 'alan_ordermaster_alan_orderaddress', array($resultOrderBillAddressSet['id']));
+
+
+
+        //Order items 
+        if (isset($salesOrder['SalesLine']) && is_array($salesOrder['SalesLine'])) {
+
+            $salesLineItems = array();
+            $salesLineItems = $salesOrder['SalesLine'];
+
+            if (!is_array($salesLineItems[0])) {
+                $temArr = $salesLineItems;
+                unset($salesLineItems);
+                $salesLineItems[] = $temArr;
+            }
+
+            
+            foreach ($salesLineItems as $orderItem) {
+                $resultOrderItemSet = self::set_entry($session_id, 'alan_OrderItem', array(
+                            array('name' => 'name', 'value' => ''),
+                            array('name' => 'description', 'value' => isset($orderItem['Description']) ? $orderItem['Description'] : ''),
+                            array('name' => 'itemno', 'value' => isset($orderItem['LineNo']) ? $orderItem['LineNo'] : ''),
+                            array('name' => 'itemtype', 'value' => isset($orderItem['ItemType']) ? $orderItem['ItemType'] : ''),
+                            array('name' => 'itemcode', 'value' => isset($orderItem['ItemCode']) ? $orderItem['ItemCode'] : ''),
+                            array('name' => 'color', 'value' => isset($orderItem['Color']) ? $orderItem['Color'] : ''),
+                            array('name' => 'size', 'value' => isset($orderItem['Size']) ? $orderItem['Size'] : ''),
+                            array('name' => 'quantity', 'value' => isset($orderItem['Quantity']) ? $orderItem['Quantity'] : 0),
+                            array('name' => 'unitamount', 'value' => isset($orderItem['UnitAmount']) ? $orderItem['UnitAmount'] : 0),
+                            array('name' => 'discountamount', 'value' => isset($orderItem['DiscountAmount']) ? $orderItem['DiscountAmount'] : 0),
+                            array('name' => 'parentlineno', 'value' => isset($orderItem['ParentLineNo']) ? $orderItem['ParentLineNo'] : 0),
+                            array('name' => 'orderno', 'value' => $orderNo),
+                            array('name' => 'webcustomerno', 'value' => $webCustomerNo),
+                            //Currently not in use
+                            //array('name' => 'orderid', 'value' => ),
+                            array('name' => 'created_by', 'value' => $userId),
+                            array('name' => 'assigned_user_id', 'value' => $userId),
+                                )
+                );
+
+                $orderItemRel = self::set_relationship($session_id, 'alan_OrderMaster', $resultOrderMasterSet['id'], 'alan_ordermaster_alan_orderitem', array($resultOrderItemSet['id']));
+            }
+        }
+
+        alan_communicationlog::log(print_r($salesOrder, true), "webservice_sucess", "success", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::ERP_CRM_NEW_SALE_ORDER, json_decode($salesOrder));
+        $error->set_error(self::WEBSERVICE_SUCESS);
+        return $error->get_soap_array();
+    }
+
+    /**
+     * <p>Validate user authentication </p>
+     * @global User $current_user
+     * @param String $session_id
+     * @return boolean
+     * 
+     */
+    private static function validate_authenticated($session_id) {
+        if (!empty($session_id)) {
+            session_id($session_id);
+            session_start();
+
+            if (!empty($_SESSION['is_valid_session']) && $_SESSION['type'] == 'user') {
+                global $current_user;
+
+                $current_user = new User();
+                $current_user->retrieve($_SESSION['user_id']);
+                return true;
+            }
+
+            session_destroy();
+        }
+        LogicHook::initialize();
+
+        return false;
+    }
+
+    /**
+     * <p>Check custmer exists or not </p>
+     * @param type $webCustomerNo
+     * @return boolean
+     */
+    private static function checkCustomerExistByWebCustomerNo($webCustomerNo) {
+        $db = DBManagerFactory::getInstance();
+
+        $sqlQuery = "   SELECT id FROM 
+                            accounts 
+                        WHERE webcustomerno = '" . $db->quote($webCustomerNo) . "'";
+
+        $queryRes = $db->query($sqlQuery);
+
+        if ($queryRes && $db->getRowCount($queryRes)) {
+            $row = $db->fetchByAssoc($queryRes);
+            return $row['id'];
+        }
+    }
+
+    /**
+     * <p>Validate the new sales order data </p>
+     * @param Array $salesOrder
+     * @return boolean|string
+     * @access private
+     */
+    private static function __validateNewSalesOrder($salesOrder) {
+        $orderMasterObj = new alan_OrderMaster();
+
+        if (!isset($salesOrder['SalesHeader']) || !is_array($salesOrder['SalesHeader'])) {
+            return self::ERROR_EMPTY_SALES_HEADER;
+        } else if (!isset($salesOrder['Customer']) || !is_array($salesOrder['Customer'])) {
+            return self::ERROR_EMPTY_CUSTOMER_INFO;
+        }
+
+        if (empty($salesOrder['SalesHeader']['SalesOrderNo'])) {
+            return self::ERROR_EMPTY_ORDER_NO;
+        } else if ($orderMasterObj->checkOrderExists($salesOrder['SalesHeader']['SalesOrderNo']) !== FALSE) {
+            return self::ERROR_DUPLICATE_ORDER;
+        }else if (!OrderState::isValidStateForNewOrder($salesOrder['SalesHeader']['OrderStatus'])) {
+            return self::ERROR_INVALID_ORDER_STATUS;
+        } else if (empty($salesOrder['SalesHeader']['ShipToName'])) {
+            return self::ERROR_EMPTY_SHIP_TO_NAME;
+        } else if (empty($salesOrder['Customer']['CustomerType'])) {
+            return self::ERROR_EMPTY_CUSTOMER_TYPE;
+        } else if (empty($salesOrder['Customer']['WebCustomerNo'])) {
+            return self::ERROR_EMPTY_WEB_CUSTOMER_NO;
+        } else if (empty($salesOrder['Customer']['FirstName'])) {
+            return self::ERROR_EMPTY_CUSTOMER_FIRSTNAME;
+        } else if (empty($salesOrder['Customer']['EMail'])) {
+            return self::ERROR_EMPTY_CUSTOMER_EMAIL;
+        } else if (empty($salesOrder['SalesLine']) || !count($salesOrder['SalesLine'])) {
+            return self::ERROR_EMPTY_SALES_LINE;
+        } else {
+            
+            $salesLineItems = array();
+            $salesLineItems = $salesOrder['SalesLine'];
+
+            if (!is_array($salesLineItems[0])) {
+                $temArr = $salesLineItems;
+                unset($salesLineItems);
+                $salesLineItems[] = $temArr;
+            }
+
+
+            foreach ($salesLineItems as $item) {
+                if (empty($item['LineNo'])) {
+                    return self::ERROR_EMPTY_LINE_NO;
+                } else if (empty($item['ItemCode'])) {
+                    return self::ERROR_EMPTY_ITEM_CODE;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    
+    /**
+     * <p>Change order status by Mangento </p>
+     * @param Array $userAuth
+     * @param Array $salesOrderStatus
+     * @return SoapError
+     * @access public
+     */
+    public static function ChangeOrderStatusByMagen($userAuth, $salesOrderStatus){
+        $error = new SoapError();
+
+        //authenticate the users using login web service
+        $Authentication = array(
+            'user_name' => $userAuth['user_name'],
+            'password' => md5($userAuth['password'])
+        );
+
+        $webservicesAuth = self::login($Authentication, 'Magento');
+        
+        $session_id = $webservicesAuth['id'];
+
+        $orderNo = isset($salesOrderStatus['SalesOrderNo'])?
+                        $salesOrderStatus['SalesOrderNo'] : '';
+        
+        $orderStatus = isset($salesOrderStatus['OrderStatus'])?
+                            $salesOrderStatus['OrderStatus'] : '';
+        
+        
+        //User authentication check 
+        if (!self::validate_authenticated($session_id)) {
+            $issue = "User Not Authenticated for Web service call for order status change by Magento.";
+            alan_logs::log(__FILE__, __METHOD__, __LINE__, $issue, "high", serialize($userAuth));
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_INVALID_SESSION, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_INVALID_SESSION);
+            return $error->get_soap_array();
+        }
+
+        //Extracting the session detail
+        $userId = self::get_user_id($session_id);
+        $orderMasterObj = new alan_OrderMaster();
+        
+        
+        
+        //Some basic validation 
+        if(empty($orderNo) ) {
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_EMPTY_ORDER_NO, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_EMPTY_ORDER_NO);
+            return $error->get_soap_array();
+            
+        }else if (empty ($orderStatus)){
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_EMPTY_ORDER_STATUS, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_EMPTY_ORDER_STATUS);
+            return $error->get_soap_array();
+        } 
+        
+        $orderMasterObj->retrieve_by_string_fields(array("name"=>$orderNo));
+        
+        //Checking order exists or not
+        if(empty($orderMasterObj->id)) {
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ORDER_NO_NOT_EXISTS, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ORDER_NO_NOT_EXISTS);
+            return $error->get_soap_array();
+        }
+        
+        $oldOrderStatus = $orderMasterObj->orderstatus;
+        //Checking order status changle or not
+        if(!OrderState::isStatusChangeableByMagento($orderStatus)){
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_ORDER_NOT_CHANGABLE, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_ORDER_NOT_CHANGABLE);
+            return $error->get_soap_array();
+        }
+        
+        
+        $orderMasterObj-> orderstatus = $orderStatus;
+        $orderMasterObj-> save ();
+        
+        
+        alan_communicationlog::log(print_r($salesOrderStatus, true), self::WEBSERVICE_SUCESS, "success", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::MAGENTO_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+        $error->set_error(self::WEBSERVICE_SUCESS);
+        return $error->get_soap_array();
+        
+    }
+    
+    
+    /**
+     * <p>Change the order status by Unicommerce </p>
+     * @param Array  $userAuth
+     * @param Array $salesOrderStatus
+     * @return SoapError
+     * @access public
+     * 
+     */
+    public static function ChangeOrderStatusByUnicom($userAuth, $salesOrderStatus){
+        $error = new SoapError();
+
+        //authenticate the users using login web service
+        $Authentication = array(
+            'user_name' => $userAuth['user_name'],
+            'password' => md5($userAuth['password'])
+        );
+
+        $webservicesAuth = self::login($Authentication, 'Unicommerce');
+        
+        $session_id = $webservicesAuth['id'];
+
+        $orderNo = isset($salesOrderStatus['SalesOrderNo'])?
+                        $salesOrderStatus['SalesOrderNo'] : '';
+        
+        $orderStatus = isset($salesOrderStatus['OrderStatus'])?
+                            $salesOrderStatus['OrderStatus'] : '';
+        
+        
+        //User authentication check 
+        if (!self::validate_authenticated($session_id)) {
+            $issue = "User Not Authenticated for Web service call for order status change by Unicommmerce.";
+            alan_logs::log(__FILE__, __METHOD__, __LINE__, $issue, "high", serialize($userAuth));
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_INVALID_SESSION, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_INVALID_SESSION);
+            return $error->get_soap_array();
+        }
+
+        //Extracting the session detail
+        $userId = self::get_user_id($session_id);
+        $orderMasterObj = new alan_OrderMaster();
+        
+        
+        
+        //Some basic validation 
+        if(empty($orderNo) ) {
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_EMPTY_ORDER_NO, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_EMPTY_ORDER_NO);
+            return $error->get_soap_array();
+            
+        }else if (empty ($orderStatus)){
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_EMPTY_ORDER_STATUS, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_EMPTY_ORDER_STATUS);
+            return $error->get_soap_array();
+        } 
+        
+        $orderMasterObj->retrieve_by_string_fields(array("name"=>$orderNo));
+        
+        //Checking order exists or not
+        if(empty($orderMasterObj->id)) {
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ORDER_NO_NOT_EXISTS, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ORDER_NO_NOT_EXISTS);
+            return $error->get_soap_array();
+        }
+        
+        $oldOrderStatus = $orderMasterObj->orderstatus;
+        //Checking order status changle or not
+        if(!OrderState::isStatusChangeablByUnicomerce($orderStatus)){
+            alan_communicationlog::log(print_r($salesOrderStatus, true), self::ERROR_ORDER_NOT_CHANGABLE, "fail", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+            $error->set_error(self::ERROR_ORDER_NOT_CHANGABLE);
+            return $error->get_soap_array();
+        }
+        
+        
+        $orderMasterObj-> orderstatus = $orderStatus;
+        $orderMasterObj-> save ();
+        
+        
+        alan_communicationlog::log(print_r($salesOrderStatus, true), self::WEBSERVICE_SUCESS, "success", $orderNo, "OrderNo", __METHOD__, alan_communicationlog::UNICOM_CRM_ORDER_STATUS_CHANGE, json_decode($salesOrderStatus));
+        $error->set_error(self::WEBSERVICE_SUCESS);
+        return $error->get_soap_array();    
+    }
+    
+}

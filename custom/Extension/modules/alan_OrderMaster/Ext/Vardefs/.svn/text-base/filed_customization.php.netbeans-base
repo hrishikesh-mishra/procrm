@@ -1,0 +1,15 @@
+<?php
+
+$dictionary["alan_OrderMaster"]["fields"]["orderstatus"] = array (
+    'name' => 'orderstatus',
+    'vname' => 'LBL_ORDERSTATUS',
+    'type' => 'varchar',
+    'len'=>50,
+    'comment' => 'Order status'
+);
+
+
+$dictionary['alan_OrderMaster']["indices"]= array ( 
+    array('name' =>'alan_ordermaster_name_uniqu_index', 'type' =>'unique', 'fields'=>array('name')),
+    array('name' =>'order_paymentmethod_index', 'type' =>'index', 'fields'=>array('paymentmethod')),
+);

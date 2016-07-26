@@ -1,0 +1,115 @@
+10
+
+dir
+4
+file:///home/svn-local/procrm/include/SugarFields/Fields
+file:///home/svn-local/procrm
+
+
+
+2013-01-26T03:36:29.093716Z
+1
+alan
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0d533836-c3eb-4288-899a-83e843c157b0
+
+Username
+dir
+
+Multienum
+dir
+
+File
+dir
+
+Radioenum
+dir
+
+Text
+dir
+
+Address
+dir
+
+Parent
+dir
+
+Int
+dir
+
+Currency
+dir
+
+Assigned_user_name
+dir
+
+Bool
+dir
+
+Collection
+dir
+
+Datetime
+dir
+
+Id
+dir
+
+Link
+dir
+
+Time
+dir
+
+Password
+dir
+
+URL
+dir
+
+Iframe
+dir
+
+Fullname
+dir
+
+Html
+dir
+
+Enum
+dir
+
+Float
+dir
+
+Download
+dir
+
+Phone
+dir
+
+Base
+dir
+
+Datetimecombo
+dir
+
+Relate
+dir
+
+Readonly
+dir
+

@@ -1,0 +1,136 @@
+<?php
+
+if (!defined('sugarEntry'))
+    define('sugarEntry', true);
+
+require_once 'service/v4/registry.php';
+
+class ErpCRMSoapRegistry extends registry_v4 {
+
+    protected function registerFunction() {
+        parent::registerFunction();
+
+        $this->serviceClass->registerFunction(
+                'CreateSalesOrder', array('userAuth' => 'tns:userAuth', 'salesOrder' => 'tns:salesOrder'), array('return' => 'tns:errorValue')
+        );
+    }
+
+    protected function registerTypes() {
+        parent::registerTypes();
+
+        $this->serviceClass->registerType(
+                'errorValue', 'complexType', 'struct', 'all', '', array(
+                            'number' => array('name' => 'number', 'type' => 'xsd:string'),
+                            'name' => array('name' => 'name', 'type' => 'xsd:string'),
+                            'description' => array('name' => 'description', 'type' => 'xsd:string'),
+                )
+        );
+        
+        
+        $this->serviceClass->registerType(
+                'salesOrder', 'complexType', 'struct', 'all', '', array(
+                    'Customer' => array('name' => 'Customer', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'tns:Customer'),
+                    'SalesHeader' => array('name' => 'SalesHeader', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'tns:SalesHeader'),
+                    'SalesLine' => array('name' => 'SalesLine', 'minOccurs' => 1, 'maxOccurs' => 1,'type' => 'tns:SalesLine'),
+                    'PaymentLine' => array('name' => 'PaymentLine', 'minOccurs' => 1, 'maxOccurs' => 1,'type' => 'tns:PaymentLine')
+                )
+        );
+
+        $this->serviceClass->registerType(
+                'Customer', 'complexType', 'struct', 'all', '', array(
+                    'CustomerType' => array('name' => 'CustomerType', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                    'WebCustomerNo' => array('name' => 'WebCustomerNo', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:int'),
+                    'FirstName' => array('name' => 'FirstName', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                    'LastName' => array('name' => 'LastName', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Address' => array('name' => 'Address', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Address2' => array('name' => 'Address2', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Address3' => array('name' => 'Address3', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Address4' => array('name' => 'Address4', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'PostCode' => array('name' => 'PostCode', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'City' => array('name' => 'City', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'State' => array('name' => 'State', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Country' => array('name' => 'Country', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'PhoneNo' => array('name' => 'PhoneNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'MobileNo' => array('name' => 'MobileNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'EMail' => array('name' => 'EMail', 'minOccurs' => 1, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'Stylist' => array('name' => 'Stylist', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:boolean'),
+                )
+        );
+
+        $this->serviceClass->registerType(
+                'SalesHeader', 'complexType', 'struct', 'all', '', array(
+                    'SalesOrderNo' => array('name' => 'SalesOrderNo', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:string'),                    
+                    'ShipToName' => array('name' => 'ShipToName', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                    'ShipToName2' => array('name' => 'ShipToName2', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                    'ShipToAddress' => array('name' => 'ShipToAddress', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToAddress2' => array('name' => 'ShipToAddress2', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToAddress3' => array('name' => 'ShipToAddress3', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToAddress4' => array('name' => 'ShipToAddress4', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToPostCode' => array('name' => 'ShipToPostCode', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToCity' => array('name' => 'ShipToCity', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToState' => array('name' => 'ShipToState', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToCountry' => array('name' => 'ShipToCountry', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToPhoneNo' => array('name' => 'ShipToPhoneNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToMobileNo' => array('name' => 'ShipToMobileNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'ShipToEMail' => array('name' => 'ShipToEMail', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),                    
+                    'BillToName' => array('name' => 'BillToName', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToName2' => array('name' => 'BillToName2', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToAddress' => array('name' => 'BillToAddress', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToAddress2' => array('name' => 'BillToAddress2', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToAddress3' => array('name' => 'BillToAddress3', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToAddress4' => array('name' => 'BillToAddress4', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToCity' => array('name' => 'BillToCity', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToPostCode' => array('name' => 'BillToPostCode', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToCity' => array('name' => 'BillToCity', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToState' => array('name' => 'BillToState', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToCountry' => array('name' => 'BillToCountry', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToPhoneNo' => array('name' => 'BillToPhoneNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToMobileNo' => array('name' => 'BillToMobileNo', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'BillToEMail' => array('name' => 'BillToEMail', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'SalespersonCode' => array('name' => 'SalespersonCode', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),                    
+                    'PaymentMethod' => array('name' => 'PaymentMethod', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'PG_FLAG' => array('name' => 'PG_FLAG', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'OrderStatus' => array('name' => 'OrderStatus', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:string'),
+                    'MobileVerified' => array('name' => 'MobileVerified', 'minOccurs' => 0, 'maxOccurs' => 1,  'type' => 'xsd:boolean'),                    
+                    'OrderDate' => array('name' => 'OrderDate', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:date'),
+                    'OrderTime' => array('name' => 'OrderTime', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:time'),
+                    'PaymentDate' => array('name' => 'PaymentDate', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:date'),
+                    'PaymentTime' => array('name' => 'PaymentTime', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:time'),
+                    'PaymentStatus' => array('name' => 'PaymentStatus', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:string'),
+                    'AuthCode' => array('name' => 'AuthCode', 'minOccurs' => 0, 'maxOccurs' => 1,'type' => 'xsd:string'),
+                    
+                )
+        );
+
+        
+        $this->serviceClass->registerType(
+                'SalesLine', 'complexType', 'struct', 'all', '', array(
+                        'LineNo' => array('name' => 'LineNo', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:int'),
+                        'ItemType' => array('name' => 'ItemType', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                        'ItemCode' => array('name' => 'ItemCode', 'minOccurs' => 1, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                        'Description' => array('name' => 'Description', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                        'Color' => array('name' => 'Color', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                        'Size' => array('name' => 'Size', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                        'Quantity' => array('name' => 'Quantity', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                        'UnitAmount' => array('name' => 'UnitAmount', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                        'DiscountAmount' => array('name' => 'DiscountAmount', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                        'ParentLineNo' => array('name' => 'ParentLineNo', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:int'),
+                )
+        );
+        
+        $this->serviceClass->registerType(
+                'PaymentLine', 'complexType', 'struct', 'all', '', array(
+                    'Amount' => array('name' => 'Amount', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:decimal'),
+                    'PaymentGateWay' => array('name' => 'PaymentGateWay', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                    'PaymentRefNo' => array('name' => 'PaymentRefNo', 'minOccurs' => 0, 'maxOccurs' => 1, 'type' => 'xsd:string'),
+                )
+        );
+        
+       
+    
+    
+    }
+
+
+}
+
